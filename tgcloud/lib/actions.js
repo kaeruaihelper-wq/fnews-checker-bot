@@ -1,7 +1,6 @@
 import { api } from 'sdk';
 import {
   BOT_USERNAME,
-  FALLBACK_IMAGE_URL,
   MAX_INTERVAL_MINUTES,
   MAX_MAX_POSTS,
   MIN_INTERVAL_MINUTES,
@@ -115,12 +114,22 @@ export async function doNews(chatId, { dryRun = false } = {}) {
     );
 
     for (const item of result.items) {
-      await api.sendPhoto({
-        chat_id: chatId,
-        photo: item.image || FALLBACK_IMAGE_URL,
-        caption: buildCaption(item),
-        parse_mode: 'HTML',
-      });
+      const caption = buildCaption(item);
+      if (item.image) {
+        await api.sendPhoto({
+          chat_id: chatId,
+          photo: item.image,
+          caption,
+          parse_mode: 'HTML',
+        });
+      } else {
+        await api.sendMessage({
+          chat_id: chatId,
+          text: caption,
+          parse_mode: 'HTML',
+          link_preview_options: { is_disabled: true },
+        });
+      }
     }
     return;
   }

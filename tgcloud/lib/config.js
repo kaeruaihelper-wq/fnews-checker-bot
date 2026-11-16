@@ -27,18 +27,20 @@ export const MAX_MAX_POSTS = 10;
 // are ignored, so a quiet day never turns into a backlog dump.
 export const MAX_POST_AGE_HOURS = 6;
 
+// The channel publishes only stories from the current calendar day. Days are
+// counted in Moscow time (UTC+3, no daylight saving) so a story published late
+// yesterday is not posted after midnight MSK.
+export const DAY_OFFSET_MINUTES = 180;
+
 export const DEFAULT_LOOKBACK_HOURS = 48;
 export const SEEN_RETENTION_DAYS = 30;
 
 // Two runs may not overlap. A lock older than this is considered abandoned.
 export const LOCK_MS = 120_000;
 
-// Telegram's photo caption limit. Captions are kept below it with headroom.
+// Telegram's photo caption limit. Photo captions must stay below it, so text
+// posts use the same limit for consistent post length.
 export const MAX_CAPTION_LENGTH = 1024;
-
-// Hosted by the project's own static site (tgcloud.jsonc → static).
-export const FALLBACK_IMAGE_URL =
-  'https://app9269986816.tgcloud.ai/fnews-fallback.png';
 
 export const YAHOO_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +

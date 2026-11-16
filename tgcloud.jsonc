@@ -1,7 +1,5 @@
 {
-  // Hosts the fallback image used when a Yahoo story has no thumbnail.
-  "static": {
-    "source": "static"
-  },
+  // No Mini App or static files: the bot posts only through the Bot API.
+  "static": false,
   "$schema": "./node_modules/@tgcloud/cli/schema/tgcloud.json"
 }

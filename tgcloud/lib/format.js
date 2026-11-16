@@ -38,9 +38,19 @@ export function formatDateRu(date) {
   );
 }
 
+// Russian translation when available, original English text otherwise.
+function displayTitle(item) {
+  return item.titleRu || item.title;
+}
+
+function displaySummary(item) {
+  return item.summaryRu || item.summary || '';
+}
+
 function captionBody(item, titleLimit, summaryLimit) {
-  const title = escapeHtml(truncate(item.title, titleLimit));
-  const summary = item.summary ? escapeHtml(truncate(item.summary, summaryLimit)) : '';
+  const title = escapeHtml(truncate(displayTitle(item), titleLimit));
+  const summaryText = displaySummary(item);
+  const summary = summaryText ? escapeHtml(truncate(summaryText, summaryLimit)) : '';
   const tickers = escapeHtml(tickerLine(item));
 
   return (
@@ -52,15 +62,17 @@ function captionBody(item, titleLimit, summaryLimit) {
 
 /**
  * Builds a Telegram HTML caption for one story: headline, short article
- * summary, affected tickers and a source link. Captions are limited to 1024
- * characters, so the summary and title are shortened until everything fits.
+ * summary and affected tickers, in Russian when translation succeeded.
+ * Captions are limited to 1024 characters, so the summary and title are
+ * shortened until everything fits.
  */
 export function buildCaption(item) {
+  const hasSummary = Boolean(displaySummary(item));
   let titleLimit = 220;
   let summaryLimit = 380;
   let caption = captionBody(item, titleLimit, summaryLimit);
 
-  while (item.summary && caption.length > MAX_CAPTION_LENGTH && summaryLimit > 80) {
+  while (hasSummary && caption.length > MAX_CAPTION_LENGTH && summaryLimit > 80) {
     summaryLimit -= 40;
     caption = captionBody(item, titleLimit, summaryLimit);
   }

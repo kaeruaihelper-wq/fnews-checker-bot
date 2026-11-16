@@ -86,10 +86,10 @@ export function cleanIndexes(raw, limit = 4) {
 export function tickerLine(item) {
   if (item.market && item.indexes?.length) {
     const names = item.indexes.map(indexLabel);
-    return `Market-wide: ${names.join(' · ')}`;
+    return `Рынок: ${names.join(' · ')}`;
   }
   if (item.tickers?.length) {
     return item.tickers.map((t) => `$${t}`).join(' · ');
   }
-  return 'Market-wide';
+  return 'Рынок';
 }

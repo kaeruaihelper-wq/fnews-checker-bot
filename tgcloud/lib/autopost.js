@@ -2,8 +2,8 @@ import { api, db } from 'sdk';
 import { gte } from 'sdk/db';
 import { seenNews } from '../schema.js';
 import {
+  DAY_OFFSET_MINUTES,
   DEFAULT_MAX_POSTS,
-  FALLBACK_IMAGE_URL,
   MAX_MAX_POSTS,
   MAX_POST_AGE_HOURS,
   SEEN_RETENTION_DAYS,
@@ -19,6 +19,7 @@ import {
   releaseLock,
   updateSettings,
 } from './store.js';
+import { translateToRussian } from './translate.js';
 import { fetchLatestNews, fetchStorySummary } from './yahoo.js';
 
 function isThrottled(settingsRow, now) {
@@ -32,8 +33,25 @@ function isThrottled(settingsRow, now) {
   return now - last < Math.max(0, intervalMs - 60_000);
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DAY_OFFSET_MS = DAY_OFFSET_MINUTES * 60 * 1000;
+
+// Calendar day number in the channel's timezone (Moscow, UTC+3).
+function dayNumber(timestamp) {
+  return Math.floor((timestamp + DAY_OFFSET_MS) / DAY_MS);
+}
+
+function isSameDay(timestamp, now) {
+  return dayNumber(timestamp) === dayNumber(now);
+}
+
+// A story is posted only when it is both fresh (within MAX_POST_AGE_HOURS)
+// and from the current calendar day.
 function isRecent(story, now) {
-  return now - story.publishedAt <= MAX_POST_AGE_HOURS * 60 * 60 * 1000;
+  return (
+    isSameDay(story.publishedAt, now) &&
+    now - story.publishedAt <= MAX_POST_AGE_HOURS * 60 * 60 * 1000
+  );
 }
 
 function clampMaxPosts(value) {
@@ -48,6 +66,20 @@ async function addSummaries(stories) {
       if (!story.summary) story.summary = await fetchStorySummary(story);
     }),
   );
+  return stories;
+}
+
+// Russian versions used for display only; the original English text stays in
+// the story object for deduplication and the seen_news table.
+async function addTranslations(stories) {
+  for (const story of stories) {
+    const [titleRu, summaryRu] = await Promise.all([
+      translateToRussian(story.title),
+      story.summary ? translateToRussian(story.summary) : Promise.resolve(''),
+    ]);
+    if (titleRu) story.titleRu = titleRu;
+    if (summaryRu) story.summaryRu = summaryRu;
+  }
   return stories;
 }
 
@@ -193,6 +225,7 @@ export async function runNewsCycle({ force = false, source = 'manual' } = {}) {
     }
 
     await addSummaries(selected);
+    await addTranslations(selected);
 
     const postedItems = [];
     const channelsPosted = new Set();
@@ -201,19 +234,27 @@ export async function runNewsCycle({ force = false, source = 'manual' } = {}) {
 
     for (const story of selected) {
       const caption = buildCaption(story);
-      const photo = story.image || FALLBACK_IMAGE_URL;
       let delivered = false;
 
       for (const channel of channels) {
         if (disabledChannels.has(channel.chatId)) continue;
 
         try {
-          const message = await api.sendPhoto({
-            chat_id: channel.chatId,
-            photo,
-            caption,
-            parse_mode: 'HTML',
-          });
+          // Stories with a Yahoo thumbnail are photo posts; the rest are plain
+          // text posts, with no placeholder image.
+          const message = story.image
+            ? await api.sendPhoto({
+                chat_id: channel.chatId,
+                photo: story.image,
+                caption,
+                parse_mode: 'HTML',
+              })
+            : await api.sendMessage({
+                chat_id: channel.chatId,
+                text: caption,
+                parse_mode: 'HTML',
+                link_preview_options: { is_disabled: true },
+              });
           delivered = true;
           channelsPosted.add(channel.chatId);
           await markChannelResult(channel.chatId, {
@@ -299,6 +340,7 @@ export async function previewNews({ limit = 5 } = {}) {
   const items = recent.slice(0, clampMaxPosts(limit));
 
   await addSummaries(items);
+  await addTranslations(items);
 
   return { totalFresh: recent.length, items };
 }
