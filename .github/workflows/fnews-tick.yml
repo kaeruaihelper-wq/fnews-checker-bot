@@ -1,0 +1,44 @@
+name: FNEWS tick
+
+# Telegram Serverless has no built-in timer, so this workflow calls the
+# `endpoints/tick` module every 5 minutes. The module itself performs the
+# Yahoo Finance fetch, deduplication and channel posting.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fnews-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run news cycle
+        env:
+          # CLI access token from @BotFather → your bot → Serverless → CLI Access.
+          # NOT the Bot API token. Add it as a repository secret.
+          TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
+        run: >
+          npx tgcloud run endpoints/tick '{ compact: true }'
+          --ctx '{ initData: { user: { id: 1709377874 } } }'
