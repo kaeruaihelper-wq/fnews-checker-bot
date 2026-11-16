@@ -12,9 +12,8 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: fnews-tick
-  cancel-in-progress: false
+# The bot itself holds a short DB lock, so overlapping runs are harmless.
+# No workflow-level concurrency group: a stuck group could block every tick.
 
 jobs:
   tick:
