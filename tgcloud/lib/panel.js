@@ -121,7 +121,7 @@ export function statusText(settings, channels, seenCount) {
     `Если свежих новостей нет, бот молчит.`,
   );
   lines.push(
-    `⏱ Автозапуск выполняет внешний планировщик (GitHub Actions или cron). ` +
+    `⏱ Автозапуск выполняет внешний планировщик (задача Windows или GitHub Actions). ` +
     `Без него новости публикуются по команде /news и при добавлении в канал.`,
   );
 

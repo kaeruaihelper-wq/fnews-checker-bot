@@ -1,12 +1,12 @@
-# Registers a Windows Task Scheduler job that runs the FNEWS tick on a timer.
-# Optional fallback for the GitHub Actions workflow.
+# Registers the primary Windows Task Scheduler job that runs the FNEWS tick
+# every 5 minutes. GitHub Actions remains a best-effort backup.
 #
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File scripts\install-task.ps1
 #   powershell -ExecutionPolicy Bypass -File scripts\install-task.ps1 -IntervalMinutes 10
 
 param(
-    [int]$IntervalMinutes = 15,
+    [int]$IntervalMinutes = 5,
     [string]$TaskName = 'FNEWS tick'
 )
 

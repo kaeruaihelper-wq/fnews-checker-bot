@@ -241,20 +241,37 @@ export async function runNewsCycle({ force = false, source = 'manual' } = {}) {
 
         try {
           // Stories with a Yahoo thumbnail are photo posts; the rest are plain
-          // text posts, with no placeholder image.
-          const message = story.image
-            ? await api.sendPhoto({
+          // text posts, with no placeholder image. If Telegram cannot download
+          // the thumbnail (400), the same post is sent as text without it.
+          let message;
+          if (story.image) {
+            try {
+              message = await api.sendPhoto({
                 chat_id: channel.chatId,
                 photo: story.image,
                 caption,
                 parse_mode: 'HTML',
-              })
-            : await api.sendMessage({
+              });
+            } catch (error) {
+              if (error?.code !== 400) throw error;
+              console.warn(
+                `Photo failed (${errorMessage(error)}), sending text: ${story.link}`,
+              );
+              message = await api.sendMessage({
                 chat_id: channel.chatId,
                 text: caption,
                 parse_mode: 'HTML',
                 link_preview_options: { is_disabled: true },
               });
+            }
+          } else {
+            message = await api.sendMessage({
+              chat_id: channel.chatId,
+              text: caption,
+              parse_mode: 'HTML',
+              link_preview_options: { is_disabled: true },
+            });
+          }
           delivered = true;
           channelsPosted.add(channel.chatId);
           await markChannelResult(channel.chatId, {
