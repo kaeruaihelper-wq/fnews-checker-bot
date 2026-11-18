@@ -107,7 +107,13 @@ powershell -ExecutionPolicy Bypass -File scripts\install-task.ps1
 Скрипт создаёт задачу `FNEWS tick` с повтором каждые 5 минут. Задача работает,
 пока пользователь Windows вошёл в систему, и использует сохранённые учётные
 данные `.tgcloud/credentials`. Пропущенные запуски (например, после сна)
-выполняются при следующем входе в систему. Удалить задачу:
+выполняются, когда компьютер снова доступен. Проверить состояние:
+
+```powershell
+Get-ScheduledTaskInfo -TaskName 'FNEWS tick'
+```
+
+Удалить задачу:
 
 ```powershell
 Unregister-ScheduledTask -TaskName 'FNEWS tick' -Confirm:$false
@@ -201,7 +207,7 @@ npx tgcloud run endpoints/tick '{ compact: true, force: true }' --ctx '{ initDat
 | В посте нет описания | Yahoo не отдал meta description статьи. Пост всё равно опубликован с заголовком и тикерами. |
 | Пост на английском | Google Translate временно недоступен. Новость опубликована с оригинальным текстом, перевод появится в следующих постах. |
 | В `/status` ошибка Yahoo | Yahoo временно недоступен или изменил API. Повторится на следующем запуске. |
-| Нет автопубликации | Не настроен планировщик. Проверьте Actions или задачу Windows; ручной `/news` работает всегда. |
+| Нет автопубликации | Проверьте `Get-ScheduledTaskInfo -TaskName 'FNEWS tick'`: задача должна быть `Ready`, `LastTaskResult = 0`. Ручной `/news` работает всегда. |
 | `No CLI access token` | Выполните `npx tgcloud login` или задайте `TGCLOUD_TOKEN` (для CI). |
 
 ## Безопасность
